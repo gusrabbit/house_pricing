@@ -8,8 +8,6 @@ DESCRIPTION = 'data_description.txt'
 SUBMISSION = 'sample_submission.csv'
 FILES = [TRAIN, TEST, DESCRIPTION, SUBMISSION]
 
-
-
 def fetch_raw_data(root_url, filename, path='data/raw/'):
     """
     Fetches raw daw from server and save to disk.
