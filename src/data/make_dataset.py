@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 import os
-#import click
-#import logging
-#from dotenv import find_dotenv, load_dotenv
+# import click
+# import logging
+# from dotenv import find_dotenv, load_dotenv
 import numpy as np
 import pandas as pd
 import sklearn.preprocessing
 
 
-def create_dummies(df,column):
-    ndf = pd.get_dummies(df[column], prefix= column, dummy_na=True)
+def create_dummies(df, column):
+    ndf = pd.get_dummies(df[column], prefix=column, dummy_na=True)
     df = df.drop(column, axis=1)
     df = df.join(ndf)
     return df
+
 
 # @click.command()
 # @click.argument('input_filepath', type=click.Path(exists=True))
@@ -23,27 +24,37 @@ def main(input_filepath=0, output_filepath=0):
     """
     # logger = logging.getLogger(__name__)
     # logger.info('making final data set from raw data')
-        
+
     train = load_df('train.csv')
     test = load_df('test.csv')
     train_test = pd.concat([train, test], axis=0)
     train_test.reset_index(drop=True, inplace=True)
-    print(train.shape)
-    print(test.shape)
-    print(train_test.shape)
+    print('\noriginal datasets:')
+    print('train', train.shape)
+    print('test', test.shape)
+    print('train_test', train_test.shape)
     train_test = create_dummies(train_test, 'MSSubClass')
-    for column in train_test.select_dtypes(exclude = [np.number]).columns:
+    for column in train_test.select_dtypes(exclude=[np.number]).columns:
         train_test = create_dummies(train_test, column)
     train_test['2ndFlrSF'].fillna(0, inplace=True)
-    imp = sklearn.preprocessing.Imputer()
-    imp.fit_transform(train_test)
-    # imputer tem que ser diferente no caso da área do segundo andar
 
-    train = train_test.iloc[:train.index[-1]]
-    test = train_test.iloc[train.index[-1]:]
+    imp = sklearn.preprocessing.Imputer()
+    train_test = pd.DataFrame(imp.fit_transform(train_test), columns=train_test.columns)
+
+    train_length = train.index.shape[0]
+
+    train = train_test.iloc[:train_length].copy()
+    test = train_test.iloc[train_length:].copy()
+    test.drop(columns=['SalePrice'], inplace=True)
+
+    print('\nprocessed datasets:')
+    print('train', train.shape)
+    print('test', test.shape)
+    print('train_test', train_test.shape)
 
     save_df(train, 'train.hdf5')
     save_df(test, 'test.hdf5')
+
 
 def load_df(filename):
     """
@@ -53,7 +64,6 @@ def load_df(filename):
     """
     final_path = os.path.join(get_data_path(), 'raw/' + filename)
     return pd.read_csv(final_path)
-
 
 
 def save_df(df, filename):
@@ -70,6 +80,7 @@ def save_df(df, filename):
 
     df.to_hdf(final_path, 'processed_data')
 
+
 def get_data_path():
     # Get current absolute path
     absolute_path = os.path.abspath(__file__)
@@ -83,6 +94,7 @@ def get_data_path():
 
     return final_path
 
+
 if __name__ == '__main__':
     # log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     # logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -95,4 +107,3 @@ if __name__ == '__main__':
     # load_dotenv(find_dotenv())
 
     main()
-
